@@ -161,7 +161,7 @@ async function loadPublicFacebookEvents(){
          typeof e.url!=='string' || !Number.isSafeInteger(e.id))continue;
       if(!/^https:\/\//.test(e.url))continue;
       if(!/^20\d\d-\d\d-\d\d$/.test(e.date) || e.date<today())continue;
-      if(!['Festival','Kontsert','Klubi'].includes(e.category))continue;
+      if(!['Festival','Kontsert','DJ-õhtu','Ööklubi'].includes(e.category))continue;
       if(EVENTS.some(x=>x.id===e.id || x.url===e.url && x.date===e.date))continue;
       EVENTS.push({...e,directTicket:false,unverified:true});
       added++;
