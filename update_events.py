@@ -83,7 +83,7 @@ def transform(row, today):
     if not re.fullmatch(r"\d\d:\d\d", time):
         time = ""
     return {
-        "id": "auto-" + str(abs(__import__("zlib").crc32((url + "|" + title + "|" + start).encode("utf-8")))),
+        "id": 1000000 + (__import__("zlib").crc32((url + "|" + title + "|" + start).encode("utf-8")) & 0xffffffff),
         "title": title.strip()[:180],
         "date": display_date,
         "time": time,
