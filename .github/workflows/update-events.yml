@@ -1,9 +1,9 @@
 name: Update Facebook Events
 
+# Temporarily manual-only until an event importer is installed and verified.
+# The previous scheduled job failed because update_events.py does not exist.
 on:
   workflow_dispatch:
-  schedule:
-    - cron: '0 8 * * *'
 
 permissions:
   contents: write
@@ -16,10 +16,19 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Update events
-        run: python update_events.py
-      - name: Save changes
+      - name: Check importer availability
         run: |
+          if [ ! -f update_events.py ]; then
+            echo "Facebook importer is not installed yet. No events updated."
+            exit 0
+          fi
+          python update_events.py
+      - name: Save updated event data
+        run: |
+          if [ ! -f data/facebook-events.json ]; then
+            echo "No event data file to commit."
+            exit 0
+          fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add data/facebook-events.json
