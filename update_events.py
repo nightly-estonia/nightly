@@ -23,6 +23,58 @@ CATEGORIES = {"nightlife": "Ööklubi", "music": "Kontsert"}
 DJ_WORDS = ("dj ", "dj-", "dj:", " dj", "disc jockey", "rave", "techno", "house night", "drum & bass", "dnb", "diskor")
 FESTIVAL_WORDS = ("festival", "fest", "õllesummer", "jazzkaar", "tallinn music week")
 EXCLUDE_WORDS = ("muuseum", "museum", "näitus", "exhibition", "töötuba", "workshop", "koolitus", "seminar", "konverents", "conference", "kodanikunädal", "loeng", "lecture", "ekskursioon", "tour", "kino", "cinema", "film screening", "jooga", "yoga", "teenistus", "jumalateenistus")
+# Keep the feed focused on actual evening entertainment, not museum / civic listings.
+BLOCKED_VENUES = (
+    "kumu", "kunstimuuseum", "muuseum", "museum", "kirik",
+    "kogudus", "synagogue", "sünagoog", "raamatukogu",
+    "muusika- ja balletikool", "muba", "muusika- ja teatriakadeemia",
+    "kool", "university", "ülikool", "galerii", "gallery",
+    "kadrioru loss", "niguliste", "toomkirik", "hopneri maja",
+    "raekoda", "kunstikeskus", "parkla"
+)
+BLOCKED_TITLES = (
+    "jõulukontsert", "jõululaat", "jõuluturg", "koorikontsert",
+    "heategevus", "koolikontsert", "gala-show", "kammersaal",
+    "klassikaline", "kammerkoor", "harfi helirännak",
+    "gong", "helirännak", "heliseanss", "meditatsioon",
+    "helilõdvestus", "kontsertrännak", "pilates",
+    "cuddle party", "birthday party @ morii", "jazz pesulad",
+    "ekskursioon", "ühisaerutamine", "muusikaajaloo",
+    "vilistlaste kokkutulek", "drum art school", "kodanikunädal",
+    "näitus", "muuseum", "museum", "workshop", "töötuba",
+    "etendus", "teatraliseeritud", "театрализованное",
+    "performance art", "sünnipäevakontsert", "advent",
+    "jõulugala", "õpilaskontsert", "õpilaste kontsert",
+)
+NIGHTLIFE_WORDS = (
+    "party", "pidu", "klubi", "club", "night", "rave", "disco",
+    "dj", "live", "festival", "fest", "techno", "house",
+    "dance", "tants", "after", "metal", "rock", "jazz",
+    "album", "kontsert", "concert", "karaoke", "dnb",
+    "drum & bass", "hip-hop", "indie", "electronic"
+)
+
+def nightlife_relevant(row):
+    title = str(row.get("title") or "").casefold()
+    venue = str(row.get("venue") or "").casefold()
+    if any(word in venue for word in BLOCKED_VENUES):
+        return False
+    if any(word in title for word in BLOCKED_TITLES):
+        return False
+    time = str(row.get("time") or "")
+    if re.fullmatch(r"\\d{2}:\\d{2}", time) and time < "17:00":
+        return False
+    if row.get("category") == "nightlife":
+        return True
+    return row.get("category") == "music" and (
+        any(word in title for word in NIGHTLIFE_WORDS)
+        or any(word in venue for word in (
+            "hall", "helitehas", "paavli", "uus laine",
+            "terminal", "veino", "von krahli", "pub",
+            "bar", "kultuurikatel", "tap­per", "saar cult"
+        ))
+    )
+
 DISTRICTS = {
     "Põhja-Tallinn": ["telliskivi", "kopli", "paavli", "põhja-tallinn", "noblessner", "kalamaja", "balti jaam", "volta", "peetri 6", "marati"],
     "Lasnamäe": ["lasnamäe", "pae tn", "läänemere tee", "laagna"],
@@ -67,7 +119,7 @@ def source_url(row):
 def transform(row, today):
     if not isinstance(row, dict) or row.get("status") not in (None, "scheduled"):
         return None
-    if row.get("category") not in ALLOWED:
+    if row.get("category") not in ALLOWED or not nightlife_relevant(row):
         return None
     title = row.get("title")
     start = row.get("start_date")
