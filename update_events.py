@@ -62,7 +62,7 @@ def nightlife_relevant(row):
     if any(word in title for word in BLOCKED_TITLES):
         return False
     time = str(row.get("time") or "")
-    if re.fullmatch(r"\\d{2}:\\d{2}", time) and time < "17:00":
+    if re.fullmatch(r"\d{2}:\d{2}", time) and time < "17:00":
         return False
     if row.get("category") == "nightlife":
         return True
