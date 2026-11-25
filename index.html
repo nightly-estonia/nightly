@@ -94,9 +94,9 @@ const today=()=>new Date().toLocaleDateString('sv-SE',{timeZone:'Europe/Tallinn'
 let selectedCategory='',visible=[],selected=null,activeTab='google',map=null,markers=[],geoCache={},loading=false;
 try{geoCache=JSON.parse(localStorage.getItem('nightlyGeos')||'{}')}catch(_){geoCache={}}
 $('district').innerHTML+=districts.map(d=>'<option>'+esc(d)+'</option>').join('');
-const cats=['Kõik','Pidu','Kontsert','Festival','Muu'];
+const cats=['Kõik','Festival','Kontsert','Klubi'];
 function drawChips(){ $('chips').innerHTML=cats.map(c=>`<button class="chip ${selectedCategory===(c==='Kõik'?'':c)?'on':''}" data-cat="${esc(c)}">${esc(c)}</button>`).join('');$('chips').querySelectorAll('button').forEach(b=>b.onclick=()=>{selectedCategory=b.dataset.cat==='Kõik'?'':b.dataset.cat;drawChips();render()});}
-function filtered(){const term=$('search').value.toLowerCase().trim(),district=$('district').value,day=$('date').value,age=$('age').value;return EVENTS.filter(e=>e.date>=today()&&(!term||[e.title,e.venue,e.address,e.district,e.category].join(' ').toLowerCase().includes(term))&&(!district||e.district===district)&&(!selectedCategory||e.category===selectedCategory)&&(!day||e.date===day)&&(!age||(age==='18+'?e.age==='18+':e.age!=='18+'))).sort((a,b)=>((a.date+' '+(a.time||'99:99')).localeCompare(b.date+' '+(b.time||'99:99'))))}
+function filtered(){const term=$('search').value.toLowerCase().trim(),district=$('district').value,day=$('date').value,age=$('age').value;return EVENTS.filter(e=>['Festival','Kontsert','Klubi'].includes(e.category)&&e.date>=today()&&(!term||[e.title,e.venue,e.address,e.district,e.category].join(' ').toLowerCase().includes(term))&&(!district||e.district===district)&&(!selectedCategory||e.category===selectedCategory)&&(!day||e.date===day)&&(!age||(age==='18+'?e.age==='18+':e.age!=='18+'))).sort((a,b)=>((a.date+' '+(a.time||'99:99')).localeCompare(b.date+' '+(b.time||'99:99'))))}
 function card(e){
 const ticket=e.soldOut?`<a href="${esc(e.url)}" target="_self" rel="noopener noreferrer" class="btn disabled">Välja müüdud ↗</a>`:e.directTicket?`<a href="${esc(e.url)}" target="_self" rel="noopener noreferrer" class="btn gold">Osta piletid ↗</a>`:`<a href="${esc(e.url)}" target="_self" rel="noopener noreferrer" class="btn gold">Ürituse info ↗</a>`;
 return `<article class="event"><div class="eventbody"><div class="eventHeading"><span class="typeLabel">${esc(e.category)}</span><span class="venueLabel">${esc(e.district)}</span></div><div class="when">${esc(formatDate(e.date))} ${e.time?'· '+esc(e.time):''}</div><h3 data-detail="${e.id}" tabindex="0" role="button" aria-label="Vaata ürituse infot">${esc(e.title)}</h3><div class="meta">⌖ ${esc(e.venue)}${e.address?' · '+esc(e.address):''}<br>${e.age==='18+'?'Vanusepiirang 18+':'Vanusepiirang kinnitamata'}</div><div class="foot"><span class="price">${esc(e.price)}</span><span class="age">${esc(e.seller)}</span></div><div class="actions"><button class="btn gold" data-detail="${e.id}">Vaata lähemalt</button>${ticket}<button class="btn" data-select="${e.id}">⌖ Kaardil</button></div></div></article>`;
@@ -161,6 +161,7 @@ async function loadPublicFacebookEvents(){
          typeof e.url!=='string' || !Number.isSafeInteger(e.id))continue;
       if(!/^https:\/\//.test(e.url))continue;
       if(!/^20\d\d-\d\d-\d\d$/.test(e.date) || e.date<today())continue;
+      if(!['Festival','Kontsert','Klubi'].includes(e.category))continue;
       if(EVENTS.some(x=>x.id===e.id || x.url===e.url && x.date===e.date))continue;
       EVENTS.push({...e,directTicket:false,unverified:true});
       added++;
