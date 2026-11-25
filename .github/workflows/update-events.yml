@@ -1,35 +1,39 @@
-name: Update Facebook Events
+name: Update Tallinn Events
 
-# Temporarily manual-only until an event importer is installed and verified.
-# The previous scheduled job failed because update_events.py does not exist.
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'update_events.py'
+      - '.github/workflows/update-events.yml'
+  schedule:
+    - cron: '17 7 * * *'
 
 permissions:
   contents: write
 
+concurrency:
+  group: nightly-event-refresh
+  cancel-in-progress: false
+
 jobs:
   update:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Check importer availability
+      - name: Import real Tallinn events from public JSON directory
+        run: python update_events.py
+      - name: Commit updated JSON
         run: |
-          if [ ! -f update_events.py ]; then
-            echo "Facebook importer is not installed yet. No events updated."
-            exit 0
-          fi
-          python update_events.py
-      - name: Save updated event data
-        run: |
-          if [ ! -f data/facebook-events.json ]; then
-            echo "No event data file to commit."
-            exit 0
-          fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/facebook-events.json
-          git diff --cached --quiet || (git commit -m "Update Facebook events" && git push)
+          git add data/events.json data/facebook-events.json
+          if ! git diff --cached --quiet; then
+            git commit -m "Refresh Tallinn event listings"
+            git push
+          fi
