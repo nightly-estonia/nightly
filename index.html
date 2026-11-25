@@ -52,8 +52,8 @@ header .nav a{padding:10px 2px;cursor:pointer}
 <div class="sectionline"><h2>AVASTA <span style="color:var(--gold)">ÜRITUSI</span></h2><span class="count" id="count"></span></div>
 <div class="layout"><div class="cards" id="cards"></div><aside class="mapcard" id="kaart"><div class="maptitle"><h2><span>✦</span> TALLINNA KAART</h2><span class="eyebrow">PÄRIS KAART</span></div><div class="tabs"><button id="allTab" class="active" type="button">Tallinna kaart</button><button id="googleTab" type="button">Valitud üritus</button></div><div class="mapWrap" style="position:relative"><div id="allMap" style="pointer-events:none" aria-label="Tallinna ürituste asukohtade kaart"></div><iframe id="mapFallback" style="display:block" referrerpolicy="no-referrer-when-downgrade" title="Tallinna kaart" loading="lazy" src="https://maps.google.com/maps?q=Tallinn%2C%20Estonia&z=11&output=embed"></iframe><iframe id="googleFrame" title="Google Mapsi asukoht" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe><div id="mapMsg" class="mapmsg"></div></div><div class="mapbottom"><p class="mapinfo" id="mapStatus">Tallinna kaart. Kui kaarditeenus on brauseris blokeeritud, kasuta nuppu „Ava Google Maps”.</p><div class="mapactions"><a class="btn" id="openGoogle" href="https://www.google.com/maps/search/?api=1&query=Tallinn%2C%20Estonia" target="_self" rel="noopener noreferrer">Ava Google Maps ↗</a><a class="btn" id="routeGoogle" target="_self" rel="noopener noreferrer" href="https://www.google.com/maps/dir/?api=1&destination=Tallinn">Teekond ↗</a></div><div class="locationbuttons" id="locations"></div></div></aside></div>
 <p class="disclaimer">NIGHTLY kasutab avalikke üritusteallikaid; see on prototüüp, mitte reaalajas piletite saadavuse garantii. Google Maps kuvab Tallinna ja valitud ürituse asukohta ilma API võtmeta. Tallinna kaart kuvab Google Mapsi manustatud vaadet; asukohtade valik asub kaardi all. Kui väliseid kaarte blokeeritakse, saab kaardi avada otse Google Mapsis. Asukohaandmed tuvastatakse avaliku geokodeerimisteenusega ning osa ebatäpse aadressiga üritusi võib olla ilma markerita.</p>
-<p id="fbSyncStatus" style="font-size:12px;opacity:.75;margin:12px 0">Facebooki avalike ürituste voogu laaditakse…</p>
-<section id="allikad" class="sourcesSection"><h2>Ürituste allikad</h2><p>Siit saad avada ürituste ja piletite allikad. Facebooki lingiga üritused on lisatud avalike korraldajate lehtede põhjal. Uusi Facebooki üritusi ei impordita automaatselt.</p><div class="more"><a target="_self" rel="noopener noreferrer" href="https://www.facebook.com/events/">Facebook Events ↗</a><a target="_self" rel="noopener noreferrer" href="https://fienta.com/et">Fienta ↗</a><a target="_self" rel="noopener noreferrer" href="https://www.piletilevi.ee">Piletilevi ↗</a><a target="_self" rel="noopener noreferrer" href="https://viidad.ee/tallinn/events">Viidad ↗</a><a target="_self" rel="noopener noreferrer" href="https://www.visittallinn.ee/est/külastaja/mida-teha/sündmused">Visit Tallinn ↗</a></div></section>
+<p id="fbSyncStatus" style="font-size:12px;opacity:.75;margin:12px 0">Tallinna ürituste automaatvoogu laaditakse…</p>
+<section id="allikad" class="sourcesSection"><h2>Ürituste allikad</h2><p>Siit saad avada ürituste ja piletite allikad. Avalike Tallinna ürituste automaatvoog kasutab Viidad andmeallikat. Facebooki link näidatakse ainult siis, kui avalikus kirjes on Facebooki originaallink. See ei ole Facebooki täielik API.</p><div class="more"><a target="_self" rel="noopener noreferrer" href="https://www.facebook.com/events/">Facebook Events ↗</a><a target="_self" rel="noopener noreferrer" href="https://fienta.com/et">Fienta ↗</a><a target="_self" rel="noopener noreferrer" href="https://www.piletilevi.ee">Piletilevi ↗</a><a target="_self" rel="noopener noreferrer" href="https://viidad.ee/tallinn/events">Viidad ↗</a><a target="_self" rel="noopener noreferrer" href="https://www.visittallinn.ee/est/külastaja/mida-teha/sündmused">Visit Tallinn ↗</a></div></section>
 </main><footer><strong>NIGHTLY.</strong><span>YOUR CITY. YOUR NIGHT. · Tallinn · 2026</span></footer>
 <div id="detailOverlay" class="detailOverlay" role="dialog" aria-modal="true" aria-label="Ürituse detailid"><div class="detailPanel" id="detailPanel"><button class="closeDetail" id="closeDetail" aria-label="Sulge">×</button><div id="detailContent"></div></div></div>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
@@ -152,20 +152,28 @@ $('reset').onclick=()=>{$('search').value='';$('district').value='';$('date').va
 async function loadPublicFacebookEvents(){
   const status=document.getElementById('fbSyncStatus');
   try{
-    const response=await fetch('./data/facebook-events.json',{cache:'no-store'});
+    const response=await fetch('./data/events.json',{cache:'no-store'});
     if(!response.ok)throw new Error('HTTP '+response.status);
     const payload=await response.json();
-    let added=0;
+    let added=0, fbCount=0;
     for(const e of (Array.isArray(payload.events)?payload.events:[])){
-      if(!e||typeof e.title!=='string'||typeof e.date!=='string'||typeof e.url!=='string')continue;
-      if(!/^https:\/\/www\.facebook\.com\/events\/\d+\/$/.test(e.url))continue;
-      if(!/^20\d\d-\d\d-\d\d$/.test(e.date)||e.date<today())continue;
-      if(EVENTS.some(x=>x.url===e.url))continue;
-      EVENTS.push({...e,seller:'Facebook',directTicket:false,unverified:true});added++;
+      if(!e || typeof e.title!=='string' || typeof e.date!=='string' ||
+         typeof e.url!=='string' || !Number.isSafeInteger(e.id))continue;
+      if(!/^https:\/\//.test(e.url))continue;
+      if(!/^20\d\d-\d\d-\d\d$/.test(e.date) || e.date<today())continue;
+      if(EVENTS.some(x=>x.id===e.id || x.url===e.url && x.date===e.date))continue;
+      EVENTS.push({...e,directTicket:false,unverified:true});
+      added++;
+      if(e.seller==='Facebook')fbCount++;
     }
     if(added)render();
-    if(status)status.textContent=added?`${added} avalikust otsingust leitud Facebooki üritust lisatud (kontrolli korraldajalt).`:'Facebooki otsingust uusi kinnitatava kuupäevaga üritusi praegu ei leitud.';
-  }catch(err){if(status)status.textContent='Automaatset Facebooki voogu ei saanud laadida. Avalik veebimajutus on vajalik.';}
+    if(status)status.textContent= added ?
+      ('Automaatselt lisatud '+added+' Tallinna üritust'+(fbCount?' (neist '+fbCount+' Facebooki originaallingiga)':'')+'. Allikad: Viidad ja korraldajad.') :
+      'Ürituste automaatvoog on laaditud; uusi üritusi praegu ei leitud.';
+  }catch(err){
+    if(status)status.textContent='Ürituste automaatvoog pole veel saadaval. Kontrolli GitHub Actionsi viimast käivitust.';
+    console.warn('NIGHTLY events feed unavailable',err);
+  }
 }
 try { drawChips();render();initMap();loadPublicFacebookEvents(); } catch(err) { document.body.insertAdjacentHTML("afterbegin",`<div style="padding:18px;background:#432;color:white">NIGHTLY laadimisviga: ${String(err.message)}</div>`); console.error(err); }
 </script>
