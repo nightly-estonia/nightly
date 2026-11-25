@@ -18,7 +18,7 @@ DATA = ROOT / "data"
 BASE = "https://viidad.ee/tallinn/events/day/"
 DAYS = 30
 MAX_EVENTS = 400
-ALLOWED = {"nightlife", "music"}
+ALLOWED = {"nightlife", "music", "theatre", "other", "festival"}
 CATEGORIES = {"nightlife": "Ööklubi", "music": "Kontsert"}
 DJ_WORDS = ("dj ", "dj-", "dj:", " dj", "disc jockey", "rave", "techno", "house night", "drum & bass", "dnb", "diskor")
 FESTIVAL_WORDS = ("festival", "fest", "õllesummer", "jazzkaar", "tallinn music week")
@@ -64,9 +64,12 @@ def nightlife_relevant(row):
     time = str(row.get("time") or "")
     if re.fullmatch(r"\d{2}:\d{2}", time) and time < "17:00":
         return False
+    explicit_dj = any(word in title for word in ("dj ", "dj-", "dj:", "dj-set", "dj set", "rave", "techno", "club night", "klubiöö", "disco", "drum & bass", "dnb"))
+    if explicit_dj:
+        return True
     if row.get("category") == "nightlife":
         return True
-    return row.get("category") == "music" and (
+    return row.get("category") in {"music", "festival"} and (
         any(word in title for word in NIGHTLIFE_WORDS)
         or any(word in venue for word in (
             "hall", "helitehas", "paavli", "uus laine",
@@ -133,7 +136,7 @@ def transform(row, today):
     elif any(word in title_low for word in DJ_WORDS):
         category = "DJ-õhtu"
     else:
-        category = CATEGORIES[row["category"]]
+        category = CATEGORIES.get(row["category"], "DJ-õhtu")
     end = row.get("end_date")
     # A recurring event spanning today is valid, but its start date must not
     # be presented as a new event today.
@@ -173,6 +176,13 @@ def save_json(path, contents):
 def main():
     today = datetime.now(__import__('zoneinfo').ZoneInfo('Europe/Tallinn')).date()
     unique = {}
+    curated_path = DATA / "verified-dj-events.json"
+    if curated_path.exists():
+        for entry in json.loads(curated_path.read_text(encoding="utf-8")).get("events", []):
+            if (isinstance(entry, dict) and entry.get("date", "") >= today.isoformat()
+                and entry.get("category") in {"DJ-õhtu", "Ööklubi", "Festival", "Kontsert"}
+                and isinstance(entry.get("url"), str) and entry["url"].startswith("https://")):
+                unique[entry["url"] + "|" + entry["date"]] = entry
     success = 0
     for offset in range(DAYS):
         day = (today + timedelta(days=offset)).isoformat()
@@ -187,7 +197,7 @@ def main():
                     unique.setdefault(event["url"] + "|" + event["date"], event)
         except Exception as exc:
             print(f"Warning: cannot download {day}: {exc}", file=sys.stderr)
-    if not success:
+    if not success and not unique:
         print("No source requests succeeded; keeping last known data.", file=sys.stderr)
         return 1
     events = sorted(unique.values(), key=lambda e: (e["date"], e["time"], e["title"]))[:MAX_EVENTS]
