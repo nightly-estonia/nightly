@@ -18,8 +18,10 @@ DATA = ROOT / "data"
 BASE = "https://viidad.ee/tallinn/events/day/"
 DAYS = 10
 MAX_EVENTS = 250
-ALLOWED = {"nightlife", "music", "comedy", "food", "other", "workshops", "family", "theatre"}
-CATEGORIES = {"nightlife": "Pidu", "music": "Kontsert", "comedy": "Muu", "food": "Muu", "workshops": "Muu", "family": "Muu", "theatre": "Muu", "other": "Muu"}
+ALLOWED = {"nightlife", "music"}
+CATEGORIES = {"nightlife": "Klubi", "music": "Kontsert"}
+FESTIVAL_WORDS = ("festival", "fest", "õllesummer", "jazzkaar", "tallinn music week")
+EXCLUDE_WORDS = ("muuseum", "museum", "näitus", "exhibition", "töötuba", "workshop", "koolitus", "seminar", "konverents", "conference", "kodanikunädal", "loeng", "lecture", "ekskursioon", "tour", "kino", "cinema", "film screening", "jooga", "yoga", "teenistus", "jumalateenistus")
 DISTRICTS = {
     "Põhja-Tallinn": ["telliskivi", "kopli", "paavli", "põhja-tallinn", "noblessner", "kalamaja", "balti jaam", "volta", "peetri 6", "marati"],
     "Lasnamäe": ["lasnamäe", "pae tn", "läänemere tee", "laagna"],
@@ -70,6 +72,10 @@ def transform(row, today):
     start = row.get("start_date")
     if not isinstance(title, str) or not title.strip() or not isinstance(start, str):
         return None
+    title_low = title.casefold()
+    if any(word in title_low for word in EXCLUDE_WORDS):
+        return None
+    category = "Festival" if any(word in title_low for word in FESTIVAL_WORDS) else CATEGORIES[row["category"]]
     end = row.get("end_date")
     # A recurring event spanning today is valid, but its start date must not
     # be presented as a new event today.
@@ -90,7 +96,7 @@ def transform(row, today):
         "venue": str(row.get("venue") or "Tallinn")[:150],
         "address": str(row.get("address") or "")[:180],
         "district": district(row.get("address"), row.get("venue")),
-        "category": CATEGORIES.get(row.get("category"), "Muu"),
+        "category": category,
         "price": str(row.get("price") or "Hind teadmata")[:70],
         "url": url,
         "seller": seller,
