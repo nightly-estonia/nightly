@@ -152,7 +152,7 @@ $('reset').onclick=()=>{$('search').value='';$('district').value='';$('date').va
 async function loadPublicFacebookEvents(){
   const status=document.getElementById('fbSyncStatus');
   try{
-    const response=await fetch('./data/events.json',{cache:'no-store'});
+    const response=await fetch('https://raw.githubusercontent.com/nightly-estonia/nightly/main/data/events.json?refresh='+Date.now(),{cache:'no-store'});
     if(!response.ok)throw new Error('HTTP '+response.status);
     const payload=await response.json();
     let added=0, fbCount=0;
@@ -171,7 +171,7 @@ async function loadPublicFacebookEvents(){
       ('Automaatselt lisatud '+added+' Tallinna üritust'+(fbCount?' (neist '+fbCount+' Facebooki originaallingiga)':'')+'. Allikad: Viidad ja korraldajad.') :
       'Ürituste automaatvoog on laaditud; uusi üritusi praegu ei leitud.';
   }catch(err){
-    if(status)status.textContent='Ürituste automaatvoog pole veel saadaval. Kontrolli GitHub Actionsi viimast käivitust.';
+    if(status)status.textContent='Ürituste automaatvoogu ei saanud laadida. Proovi veebilehte uuendada või kontrolli internetiühendust.';
     console.warn('NIGHTLY events feed unavailable',err);
   }
 }
