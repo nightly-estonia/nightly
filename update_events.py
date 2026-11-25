@@ -19,7 +19,8 @@ BASE = "https://viidad.ee/tallinn/events/day/"
 DAYS = 10
 MAX_EVENTS = 250
 ALLOWED = {"nightlife", "music"}
-CATEGORIES = {"nightlife": "Klubi", "music": "Kontsert"}
+CATEGORIES = {"nightlife": "Ööklubi", "music": "Kontsert"}
+DJ_WORDS = ("dj ", "dj-", "dj:", " dj", "disc jockey", "rave", "techno", "house night", "drum & bass", "dnb", "diskor")
 FESTIVAL_WORDS = ("festival", "fest", "õllesummer", "jazzkaar", "tallinn music week")
 EXCLUDE_WORDS = ("muuseum", "museum", "näitus", "exhibition", "töötuba", "workshop", "koolitus", "seminar", "konverents", "conference", "kodanikunädal", "loeng", "lecture", "ekskursioon", "tour", "kino", "cinema", "film screening", "jooga", "yoga", "teenistus", "jumalateenistus")
 DISTRICTS = {
@@ -75,7 +76,12 @@ def transform(row, today):
     title_low = title.casefold()
     if any(word in title_low for word in EXCLUDE_WORDS):
         return None
-    category = "Festival" if any(word in title_low for word in FESTIVAL_WORDS) else CATEGORIES[row["category"]]
+    if any(word in title_low for word in FESTIVAL_WORDS):
+        category = "Festival"
+    elif any(word in title_low for word in DJ_WORDS):
+        category = "DJ-õhtu"
+    else:
+        category = CATEGORIES[row["category"]]
     end = row.get("end_date")
     # A recurring event spanning today is valid, but its start date must not
     # be presented as a new event today.
