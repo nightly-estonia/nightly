@@ -16,8 +16,8 @@ from urllib.parse import urlparse
 ROOT = Path(__file__).resolve().parent
 DATA = ROOT / "data"
 BASE = "https://viidad.ee/tallinn/events/day/"
-DAYS = 10
-MAX_EVENTS = 250
+DAYS = 30
+MAX_EVENTS = 400
 ALLOWED = {"nightlife", "music"}
 CATEGORIES = {"nightlife": "Ööklubi", "music": "Kontsert"}
 DJ_WORDS = ("dj ", "dj-", "dj:", " dj", "disc jockey", "rave", "techno", "house night", "drum & bass", "dnb", "diskor")
@@ -119,7 +119,7 @@ def save_json(path, contents):
     temp.replace(path)
 
 def main():
-    today = date.today()
+    today = datetime.now(__import__('zoneinfo').ZoneInfo('Europe/Tallinn')).date()
     unique = {}
     success = 0
     for offset in range(DAYS):
