@@ -8,7 +8,7 @@ on:
       - 'update_events.py'
       - '.github/workflows/update-events.yml'
   schedule:
-    - cron: '17 7 * * *'
+    - cron: '17 7,17 * * *'
 
 permissions:
   contents: write
