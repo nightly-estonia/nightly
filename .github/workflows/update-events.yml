@@ -31,7 +31,7 @@ jobs:
         run: |
           if [ "$EVENT_NAME" != "schedule" ]; then
             echo "run_import=true" >> "$GITHUB_OUTPUT"
-          elif [ "$(TZ=Europe/Tallinn date +%H:%M)" = "08:00" ] || [ "$(TZ=Europe/Tallinn date +%H:%M)" = "16:00" ]; then
+          elif [ "$(TZ=Europe/Tallinn date +%H)" = "08" ] || [ "$(TZ=Europe/Tallinn date +%H)" = "16" ]; then
             echo "run_import=true" >> "$GITHUB_OUTPUT"
           else
             echo "run_import=false" >> "$GITHUB_OUTPUT"
