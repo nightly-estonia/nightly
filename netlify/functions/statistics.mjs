@@ -76,7 +76,7 @@ export default async function (request) {
     let active = 0;
     // Limit expensive per-visit lookups on a busy site. The active count is an estimate.
     const currentKeys = activeKeys.slice(-250);
-    const results = await Promise.all(currentKeys.map((key) => store.getJSON(key).catch(() => null)));
+    const results = await Promise.all(currentKeys.map((key) => store.get(key, { type: "json" }).catch(() => null)));
     for (const item of results) {
       if (item?.lastSeen && Date.parse(item.lastSeen) > cutoff) active++;
     }
