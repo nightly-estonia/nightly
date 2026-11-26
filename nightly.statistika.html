@@ -98,8 +98,10 @@ async function refresh(){
     document.getElementById('status').className='';
     document.getElementById('status').textContent='Viimati uuendatud: '+new Date().toLocaleTimeString('et-EE',{timeZone:'Europe/Tallinn',hour:'2-digit',minute:'2-digit'});
   }catch(e){
+    const message = 'Statistikateenus pole praegu kättesaadav (' + (e.message || 'võrguviga') + '). Parool võib olla õige, kuid Netlify peab statistikafunktsiooni edukalt avaldama.';
+    document.getElementById('loginError').textContent=message;
     document.getElementById('status').className='bad';
-    document.getElementById('status').textContent='Statistika ei ole veel kättesaadav. Kui veebileht on äsja uuendatud, kontrolli Netlify avaldamise olekut.';
+    document.getElementById('status').textContent=message;
   }
 }
 setInterval(refresh,60000);
