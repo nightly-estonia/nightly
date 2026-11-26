@@ -24,7 +24,6 @@ export default async function (request) {
     return json({ error: "Method not allowed" }, 405);
   }
   try {
-    const store = getStore("nightly-anonymous-visits-v1");
     if (request.method === "POST") {
       const origin = request.headers.get("origin");
       // Only our Netlify website should send tracking events.
@@ -39,6 +38,7 @@ export default async function (request) {
       const now = new Date().toISOString();
       const day = estonianDay(now);
       // A new ID is generated for each page load; heartbeats reuse the same ID.
+      const store = getStore("nightly-anonymous-visits-v1");
       await store.setJSON(`visits/${day}/${id}`, { lastSeen: now });
       return json({ ok: true });
     }
@@ -54,6 +54,7 @@ export default async function (request) {
     }
     if (!authorized) return json({ error: "Vale parool või parool puudub." }, 401);
 
+    const store = getStore("nightly-anonymous-visits-v1");
     const { blobs } = await store.list({ prefix: "visits/" });
     const dates = recentDays(7);
     const counts = Object.fromEntries(dates.map((date) => [date, 0]));
@@ -88,6 +89,11 @@ export default async function (request) {
     });
   } catch (error) {
     console.error("Nightly statistics error:", error);
-    return json({ error: "Statistika ei ole veel saadaval. Kontrolli Netlify funktsiooni avaldamist." }, 503);
+    const code = error?.name === "MissingBlobsEnvironmentError"
+      ? "BLOBS_ENVIRONMENT_MISSING"
+      : error?.name === "BlobStoreError"
+        ? "BLOBS_STORE_ERROR"
+        : "STATISTICS_BACKEND_ERROR";
+    return json({ error: "Statistika andmehoidla ei ole kättesaadav.", code }, 503);
   }
 }
