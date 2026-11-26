@@ -44,6 +44,8 @@ jobs:
           python-version: '3.12'
       - name: Import real Tallinn events from public JSON directory
         if: steps.local_time.outputs.run_import == 'true'
+        env:
+          APIFY_TOKEN: ${{ secrets.APIFY_TOKEN }}
         run: python update_events.py
       - name: Commit updated JSON
         if: steps.local_time.outputs.run_import == 'true'
