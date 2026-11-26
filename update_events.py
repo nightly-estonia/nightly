@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Refresh NIGHTLY public Tallinn events without API keys or paid services.
+"""Refresh NIGHTLY public Tallinn events from public feeds and optional Apify.
 
 Sources: Viidad Tallinn JSON directory and SKENE.INFO public events JSON feed.
 Facebook labels are used ONLY for an original Facebook event URL from the source.
@@ -10,6 +10,7 @@ import re
 import sys
 import urllib.request
 from datetime import date, datetime, timedelta, timezone
+from zoneinfo import ZoneInfo
 from pathlib import Path
 from urllib.parse import urlparse
 
@@ -224,6 +225,109 @@ def skene_facebook_events(today):
             found.append(entry)
     return found
 
+def apify_facebook_events(today):
+    """Fetch directly from public Facebook Events via Apify, with a hard per-run cap.
+
+    Only called when APIFY_TOKEN exists. Each call processes up to 20 paid items
+    with a configured charge ceiling of USD 0.04 per scheduled run.
+    The public Apify actor is independent of Facebook.
+    """
+    token = os.environ.get("APIFY_TOKEN", "").strip()
+    if not token:
+        print("Apify skipped: APIFY_TOKEN GitHub secret not configured.")
+        return [], False
+
+    actor = "dami_studio~facebook-events-scraper"
+    url = ("https://api.apify.com/v2/acts/" + actor +
+           "/run-sync-get-dataset-items?maxItems=20&maxTotalChargeUsd=0.04&timeout=120")
+    settings = {
+        "searchTerms": ["nightclub", "DJ", "concert", "party"],
+        "location": "Tallinn",
+        "maxEvents": 20,
+        "startingFrom": today,
+        "startingBefore": (date.fromisoformat(today) + timedelta(days=DAYS)).isoformat(),
+    }
+    request = urllib.request.Request(
+        url, data=json.dumps(settings).encode("utf-8"), method="POST",
+        headers={
+            "Authorization": "Bearer " + token,
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+            "User-Agent": "NIGHTLY-events/1.1",
+        })
+    with urllib.request.urlopen(request, timeout=160) as response:
+        entries = json.load(response)
+    if not isinstance(entries, list):
+        raise ValueError("Apify returned no completed dataset; preserving previous Facebook entries.")
+
+    local_tz = ZoneInfo("Europe/Tallinn")
+    end = (date.fromisoformat(today) + timedelta(days=DAYS)).isoformat()
+    events = []
+    for row in entries:
+        if not isinstance(row, dict) or row.get("ok") is False:
+            continue
+        if row.get("_sample") or row.get("_diagnostic") or row.get("recordType") not in (None, "event"):
+            continue
+        if row.get("isCanceled") or row.get("isPast") or row.get("isOnline"):
+            continue
+        original_url = str(row.get("eventUrl") or "")
+        parsed = urlparse(original_url)
+        if parsed.scheme != "https" or not parsed.hostname or parsed.hostname.lower() not in FB_HOSTS:
+            continue
+        title = str(row.get("name") or "").strip()
+        venue = str(row.get("venueName") or "Tallinn").strip()
+        address = str(row.get("venueAddress") or "").strip()
+        city = str(row.get("venueCity") or "").strip()
+        # Search location is Tallinn; reject events explicitly listed in other cities.
+        if city and "tallinn" not in city.casefold():
+            continue
+        if not title or any(word in title.casefold() for word in EXCLUDE_WORDS + BLOCKED_TITLES):
+            continue
+        if any(word in venue.casefold() for word in BLOCKED_VENUES):
+            continue
+        try:
+            start = str(row.get("startTime") or "")
+            if not start:
+                continue
+            start_local = datetime.fromisoformat(start.replace("Z", "+00:00"))
+            if start_local.tzinfo is None:
+                continue
+            start_local = start_local.astimezone(local_tz)
+        except (ValueError, TypeError):
+            continue
+        event_date = start_local.date().isoformat()
+        if event_date < today or event_date >= end:
+            continue
+        time = start_local.strftime("%H:%M")
+        words = title.casefold() + " " + str(row.get("description") or "")[:300].casefold()
+        cats = " ".join(
+            c.get("label", "") if isinstance(c, dict) else str(c)
+            for c in (row.get("categories") or []) if isinstance(c, (dict, str))
+        ).casefold()
+        is_dj = any(w in words for w in DJ_WORDS)
+        is_festival = any(w in words for w in FESTIVAL_WORDS)
+        is_club = any(w in words for w in ("klubi", "club", "nightclub", "party", "pidu", "rave"))
+        is_music = any(w in words or w in cats for w in NIGHTLIFE_WORDS)
+        if not (is_dj or is_club or is_music or is_festival):
+            continue
+        if time < "17:00" and not is_festival:
+            continue
+        category = ("Festival" if is_festival else
+                    "DJ-õhtu" if is_dj else "Ööklubi" if is_club else "Kontsert")
+        event_id = 3000000000 + (__import__("zlib").crc32((original_url + event_date).encode("utf-8")) & 0xffffffff)
+        events.append({
+            "id": event_id, "title": title[:180], "date": event_date,
+            "time": time, "venue": venue[:150], "address": address[:180],
+            "district": district(address, venue), "category": category,
+            "price": str(row.get("priceRange") or "Kontrolli korraldajalt")[:70],
+            "url": original_url, "seller": "Facebook",
+            "source": "Apify public Facebook Events",
+            "age": "Kontrolli korraldajalt", "directTicket": False,
+            "soldOut": False, "unverified": True,
+        })
+    print(f"Apify public Facebook Events: received {len(entries)} rows, {len(events)} Tallinn nightlife events.")
+    return events, True
+
 def save_json(path, contents):
     path.parent.mkdir(exist_ok=True, parents=True)
     temp = path.with_suffix(".tmp")
@@ -263,15 +367,45 @@ def main():
             skene_count += 1
     except Exception as exc:
         print(f"Warning: SKENE.INFO Facebook feed unavailable: {exc}", file=sys.stderr)
+    # Apify runs at the same two daily times as the existing importer.
+    # Preserve last-known Facebook listings on upstream failure.
+    apify_added = 0
+    apify_success = False
+    try:
+        apify_events, apify_success = apify_facebook_events(today.isoformat())
+        known = {(re.sub(r"\\W+", "", e.get("title", "").casefold()),
+                  e.get("date", ""), re.sub(r"\\W+", "", e.get("venue", "").casefold()))
+                 for e in unique.values()}
+        for event in apify_events:
+            identity = (re.sub(r"\\W+", "", event["title"].casefold()),
+                        event["date"], re.sub(r"\\W+", "", event["venue"].casefold()))
+            if identity in known:
+                continue
+            known.add(identity)
+            unique.setdefault(event["url"] + "|" + event["date"], event)
+            apify_added += 1
+    except Exception as exc:
+        print(f"Warning: Apify Facebook import failed: {exc}", file=sys.stderr)
+    if not apify_success:
+        old_fb_file = DATA / "facebook-events.json"
+        if old_fb_file.exists():
+            try:
+                previous = json.loads(old_fb_file.read_text(encoding="utf-8")).get("events", [])
+                for event in previous:
+                    if (isinstance(event, dict) and event.get("date", "") >= today.isoformat()
+                        and event.get("source") == "Apify public Facebook Events"):
+                        unique.setdefault(event["url"] + "|" + event["date"], event)
+            except Exception as exc:
+                print(f"Warning: cannot recover last Apify events: {exc}", file=sys.stderr)
     if not success and not unique:
         print("No source requests succeeded; keeping last known data.", file=sys.stderr)
         return 1
     events = sorted(unique.values(), key=lambda e: (e["date"], e["time"], e["title"]))[:MAX_EVENTS]
-    payload = {"updatedAt": datetime.now(timezone.utc).isoformat(), "source": "Viidad + SKENE.INFO public Tallinn event listings", "events": events}
+    payload = {"updatedAt": datetime.now(timezone.utc).isoformat(), "source": "Viidad + SKENE.INFO + Apify Facebook public Tallinn event listings", "events": events}
     save_json(DATA / "events.json", payload)
     facebook = [e for e in events if e["seller"] == "Facebook"]
     save_json(DATA / "facebook-events.json", {"updatedAt": payload["updatedAt"], "events": facebook})
-    print(f"Saved {len(events)} Tallinn events, {len(facebook)} with original Facebook event URLs (SKENE.INFO imported: {skene_count}). Days fetched: {success}/{DAYS}")
+    print(f"Saved {len(events)} Tallinn events, {len(facebook)} with original Facebook event URLs (SKENE.INFO imported: {skene_count}, Apify imported: {apify_added}). Days fetched: {success}/{DAYS}")
     return 0
 
 if __name__ == "__main__":
