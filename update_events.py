@@ -184,7 +184,7 @@ def skene_facebook_events(today):
         if not isinstance(row, dict) or row.get("tba"):
             continue
         event_date = str(row.get("d") or "")
-        if not re.fullmatch(r"\\d{4}-\\d{2}-\\d{2}", event_date) or not today <= event_date < end:
+        if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", event_date) or not today <= event_date < end:
             continue
         city = " ".join(str(row.get(k) or "") for k in ("c", "linn")).casefold()
         if "tallinn" not in city:
