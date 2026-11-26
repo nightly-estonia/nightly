@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://nightly-estonia.github.io/nightly/sitemap.xml
