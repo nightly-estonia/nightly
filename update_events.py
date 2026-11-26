@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Refresh NIGHTLY public Tallinn events without API keys or paid services.
 
-Sources: Viidad Tallinn JSON directory. Facebook labels are used ONLY when
-an original Facebook event URL is supplied by the data source.
+Sources: Viidad Tallinn JSON directory and SKENE.INFO public events JSON feed.
+Facebook labels are used ONLY for an original Facebook event URL from the source.
 """
 import json
 import os
@@ -16,6 +16,7 @@ from urllib.parse import urlparse
 ROOT = Path(__file__).resolve().parent
 DATA = ROOT / "data"
 BASE = "https://viidad.ee/tallinn/events/day/"
+SKENE_FEED = "https://www.skene.info/feed/events.json"
 DAYS = 30
 MAX_EVENTS = 400
 ALLOWED = {"nightlife", "music", "theatre", "other", "festival"}
@@ -167,6 +168,62 @@ def transform(row, today):
         "unverified": True,
     }
 
+def skene_facebook_events(today):
+    """Import public SKENE.INFO Tallinn listings with original Facebook event links.
+
+    SKENE.INFO is an independent, curated public feed, not Facebook's own API.
+    Keep its attribution and original event URL. Never invent missing fields.
+    """
+    payload = get_json(SKENE_FEED)
+    entries = payload.get("entries") if isinstance(payload, dict) else None
+    if not isinstance(entries, list):
+        raise ValueError("invalid SKENE.INFO entries payload")
+    found = []
+    end = (date.fromisoformat(today) + timedelta(days=DAYS)).isoformat()
+    for row in entries:
+        if not isinstance(row, dict) or row.get("tba"):
+            continue
+        event_date = str(row.get("d") or "")
+        if not re.fullmatch(r"\\d{4}-\\d{2}-\\d{2}", event_date) or not today <= event_date < end:
+            continue
+        city = " ".join(str(row.get(k) or "") for k in ("c", "linn")).casefold()
+        if "tallinn" not in city:
+            continue
+        kind = str(row.get("t") or "").casefold()
+        if kind not in {"kontsert", "festival", "klubi"}:
+            continue
+        title = str(row.get("n") or "").strip()
+        venue = str(row.get("v") or "").strip()
+        if not title or any(word in title.casefold() for word in EXCLUDE_WORDS):
+            continue
+        # Both source and organiser links are documented by SKENE.INFO.
+        facebook_url = ""
+        for key in ("ou", "su"):
+            candidate = str(row.get(key) or "")
+            parsed = urlparse(candidate)
+            if parsed.scheme == "https" and parsed.hostname and parsed.hostname.lower() in FB_HOSTS:
+                facebook_url = candidate
+                break
+        if not facebook_url:
+            continue
+        category = ("Festival" if kind == "festival" else
+                    "DJ-õhtu" if any(word in title.casefold() for word in DJ_WORDS) else
+                    "Ööklubi" if kind == "klubi" else "Kontsert")
+        entry = {
+            "id": 2000000000 + (__import__("zlib").crc32((facebook_url + "|" + event_date).encode("utf-8")) & 0xffffffff),
+            "title": title[:180], "date": event_date, "time": "",
+            "venue": venue[:150] or "Tallinn", "address": "",
+            "district": district("", venue), "category": category,
+            "price": "Kontrolli korraldajalt",
+            "url": facebook_url, "seller": "Facebook",
+            "source": "SKENE.INFO", "sourceUrl": "https://klubi.skene.info/",
+            "age": "Kontrolli korraldajalt", "directTicket": False,
+            "soldOut": False, "unverified": True,
+        }
+        if nightlife_relevant({"title": title, "venue": venue, "category": "nightlife" if kind == "klubi" else "music", "time": ""}):
+            found.append(entry)
+    return found
+
 def save_json(path, contents):
     path.parent.mkdir(exist_ok=True, parents=True)
     temp = path.with_suffix(".tmp")
@@ -197,15 +254,24 @@ def main():
                     unique.setdefault(event["url"] + "|" + event["date"], event)
         except Exception as exc:
             print(f"Warning: cannot download {day}: {exc}", file=sys.stderr)
+    # Include Facebook-origin events discovered in SKENE.INFO's public feed.
+    # A temporary source outage must never delete previously imported Viidad events.
+    skene_count = 0
+    try:
+        for event in skene_facebook_events(today.isoformat()):
+            unique.setdefault(event["url"] + "|" + event["date"], event)
+            skene_count += 1
+    except Exception as exc:
+        print(f"Warning: SKENE.INFO Facebook feed unavailable: {exc}", file=sys.stderr)
     if not success and not unique:
         print("No source requests succeeded; keeping last known data.", file=sys.stderr)
         return 1
     events = sorted(unique.values(), key=lambda e: (e["date"], e["time"], e["title"]))[:MAX_EVENTS]
-    payload = {"updatedAt": datetime.now(timezone.utc).isoformat(), "source": "Viidad public Tallinn events listings", "events": events}
+    payload = {"updatedAt": datetime.now(timezone.utc).isoformat(), "source": "Viidad + SKENE.INFO public Tallinn event listings", "events": events}
     save_json(DATA / "events.json", payload)
     facebook = [e for e in events if e["seller"] == "Facebook"]
     save_json(DATA / "facebook-events.json", {"updatedAt": payload["updatedAt"], "events": facebook})
-    print(f"Saved {len(events)} Tallinn events, {len(facebook)} with original Facebook event URLs from source. Days fetched: {success}/{DAYS}")
+    print(f"Saved {len(events)} Tallinn events, {len(facebook)} with original Facebook event URLs (SKENE.INFO imported: {skene_count}). Days fetched: {success}/{DAYS}")
     return 0
 
 if __name__ == "__main__":
