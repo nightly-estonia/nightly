@@ -81,7 +81,10 @@ async function refresh(){
       password='';
       return;
     }
-    if(!response.ok)throw new Error('HTTP '+response.status);
+    if(!response.ok){
+      const detail=await response.json().catch(()=>({}));
+      throw new Error('HTTP '+response.status+(detail.code?' · '+detail.code:''));
+    }
     document.getElementById('locked').hidden=true;
     document.getElementById('dashboard').hidden=false;
     document.getElementById('statsPassword').value='';
