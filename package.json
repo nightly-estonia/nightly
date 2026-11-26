@@ -1,0 +1,9 @@
+{
+  "name": "nightly-site",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Static NIGHTLY website with anonymous visitor statistics",
+  "dependencies": {
+    "@netlify/blobs": "11.1.9"
+  }
+}
