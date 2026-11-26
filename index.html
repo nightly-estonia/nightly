@@ -172,4 +172,28 @@ async function loadPublicFacebookEvents(){
 }
 try { drawChips();render();initMap();loadPublicFacebookEvents(); } catch(err) { document.body.insertAdjacentHTML("afterbegin",`<div style="padding:18px;background:#432;color:white">NIGHTLY laadimisviga: ${String(err.message)}</div>`); console.error(err); }
 </script>
+<!-- Anonymous NIGHTLY visitor counter: no login, cookies or persistent browser identifier. -->
+<script>
+(function(){
+  if(location.hostname !== 'nightlyest.netlify.app') return;
+  const visitId = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() :
+    'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+      const r=Math.floor(Math.random()*16);return (c==='x'?r:(r&3|8)).toString(16);
+    });
+  const ping = () => {
+    if(document.visibilityState === 'hidden') return;
+    fetch('/.netlify/functions/statistics',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({id:visitId}),
+      keepalive:true
+    }).catch(() => {});
+  };
+  ping();
+  setInterval(ping,120000);
+  document.addEventListener('visibilitychange',()=>{
+    if(document.visibilityState==='visible')ping();
+  });
+})();
+</script>
 </body></html>
