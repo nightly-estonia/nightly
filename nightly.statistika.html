@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="et">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NIGHTLY — statistika</title>
+<meta name="robots" content="noindex,nofollow">
+<style>
+:root{color-scheme:dark;font-family:Inter,system-ui,-apple-system,Arial,sans-serif;background:#09090b;color:#f6f1e7}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 85% 2%,#5f471f38,transparent 30%),#09090b;min-height:100vh}
+main{width:min(1020px,calc(100% - 34px));margin:auto;padding:32px 0 70px}
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.logo{font-size:24px;font-weight:900;letter-spacing:.15em;color:#e3c17b;text-decoration:none}.logo span{color:white}
+.link{color:#d9c29a;text-decoration:none;border:1px solid #55442c;padding:11px 15px;border-radius:20px;font-size:13px}
+h1{font-size:clamp(28px,5vw,47px);letter-spacing:-.04em;margin:60px 0 6px}
+.sub{color:#aaa39b;margin:0 0 28px;line-height:1.55}.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:15px}
+.card,.chart{background:#161518;border:1px solid #514027;border-radius:18px;padding:24px}
+.label{font-size:13px;color:#aca69e}.value{font-weight:800;font-size:clamp(30px,5vw,47px);margin-top:13px;letter-spacing:-.04em}
+.green{color:#9fe0ac}.chart{margin-top:20px}.chart h2{margin:0 0 25px;font-size:20px}
+.bars{height:240px;display:grid;grid-template-columns:repeat(7,1fr);align-items:end;gap:14px}
+.barCol{height:100%;display:flex;flex-direction:column;justify-content:end;align-items:center;gap:8px;min-width:0}
+.barN{font-size:13px;font-variant-numeric:tabular-nums;color:#e7d09e}
+.bar{background:linear-gradient(180deg,#f3d996,#927038);border-radius:8px 8px 3px 3px;width:min(100%,55px);min-height:3px}
+.barLabel{font-size:12px;color:#b9b3aa;white-space:nowrap}footer{margin-top:26px;color:#89837d;font-size:13px;line-height:1.8}
+#status{font-size:13px;color:#a89c83;padding-top:20px}.bad{color:#ffb5a7!important}
+@media(max-width:750px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}h1{margin-top:42px}.card{padding:18px}}
+#locked{max-width:450px;margin:55px auto;padding:30px;background:#161518;border:1px solid #5b492d;border-radius:20px}
+#locked h2{margin:0 0 12px;color:#e3c17b}#locked p{color:#afa69d;line-height:1.55}
+#locked input{width:100%;font-size:16px;background:#272328;border:1px solid #78603d;color:white;padding:13px;border-radius:10px}
+#locked button{margin-top:13px;padding:13px 20px;width:100%;font-weight:750;border:0;border-radius:10px;background:#e3c17b;color:#17120b;cursor:pointer}
+#dashboard[hidden],#locked[hidden]{display:none}
+</style>
+</head>
+<body>
+<main>
+<header class="top"><a href="/" class="logo">NIGHTLY<span>.</span></a><a href="/" class="link">← Tagasi ürituste juurde</a></header>
+<h1>NIGHTLY statistika</h1>
+<p class="sub">Tallinna ööelu veebilehe külastused. Andmed uuenevad automaatselt iga minuti järel.</p>
+<section id="locked">
+<h2>🔒 Ainult omanikule</h2>
+<p>Statistika vaatamiseks sisesta oma NIGHTLY parool.</p>
+<form id="unlockForm">
+<label for="statsPassword">Statistika parool</label>
+<input id="statsPassword" type="password" autocomplete="off" required placeholder="Sisesta parool">
+<button type="submit">Ava statistika</button>
+</form>
+<p id="loginError" class="bad" role="alert"></p>
+</section>
+<div id="dashboard" hidden>
+<section class="grid">
+<div class="card"><div class="label">Täna avamisi</div><div class="value" id="today">—</div></div>
+<div class="card"><div class="label">Viimased 7 päeva</div><div class="value" id="last7">—</div></div>
+<div class="card"><div class="label">Kokku alates loenduri käivitamisest</div><div class="value" id="total">—</div></div>
+<div class="card"><div class="label">Praegu aktiivseid aknaid*</div><div class="value green" id="active">—</div></div>
+</section>
+<section class="chart"><h2>Viimase 7 päeva külastused</h2><div class="bars" id="bars"></div></section>
+<div id="status" role="status">Laen statistikat…</div>
+</div>
+<footer>* Aktiivne tähendab brauseriakent, mis on viimase 5 minuti jooksul loenduriga ühendust võtnud. See on hinnang, mitte täpne inimeste arv.<br>
+Loendatakse veebilehe avamisi, mitte unikaalseid inimesi. Lehe uuesti avamine lisab uue külastuse. Statistika algab loenduri käivitamisest, vanu külastusi tagantjärele ei lisata. Andmed ei sisalda nimesid, kontosid ega IP-aadresse.</footer>
+</main>
+<script>
+const format = (n) => new Intl.NumberFormat('et-EE').format(n);
+let password = '';
+let refreshTimer = null;
+document.getElementById('unlockForm').addEventListener('submit',async (event)=>{
+  event.preventDefault();
+  password = document.getElementById('statsPassword').value;
+  document.getElementById('loginError').textContent = '';
+  await refresh();
+});
+async function refresh(){
+  if(!password)return;
+  try{
+    const response=await fetch('/.netlify/functions/statistics',{
+      cache:'no-store',
+      headers:{'X-Nightly-Statistics-Password':password}
+    });
+    if(response.status===401){
+      document.getElementById('loginError').textContent='Vale parool. Proovi uuesti.';
+      document.getElementById('dashboard').hidden=true;
+      password='';
+      return;
+    }
+    if(!response.ok)throw new Error('HTTP '+response.status);
+    document.getElementById('locked').hidden=true;
+    document.getElementById('dashboard').hidden=false;
+    document.getElementById('statsPassword').value='';
+    const d=await response.json();
+    for(const key of ['today','last7','total','active']) document.getElementById(key).textContent=format(d[key]??0);
+    const max=Math.max(1,...d.days.map(x=>x.visits));
+    document.getElementById('bars').replaceChildren(...d.days.map(x=>{
+      const col=document.createElement('div');col.className='barCol';
+      const n=document.createElement('div');n.className='barN';n.textContent=format(x.visits);
+      const bar=document.createElement('div');bar.className='bar';bar.style.height=(Math.max(3,x.visits/max*185))+'px';
+      const label=document.createElement('div');label.className='barLabel';label.textContent=x.date.slice(5).split('-').reverse().join('.');
+      col.append(n,bar,label);return col;
+    }));
+    document.getElementById('status').className='';
+    document.getElementById('status').textContent='Viimati uuendatud: '+new Date().toLocaleTimeString('et-EE',{timeZone:'Europe/Tallinn',hour:'2-digit',minute:'2-digit'});
+  }catch(e){
+    document.getElementById('status').className='bad';
+    document.getElementById('status').textContent='Statistika ei ole veel kättesaadav. Kui veebileht on äsja uuendatud, kontrolli Netlify avaldamise olekut.';
+  }
+}
+setInterval(refresh,60000);
+</script>
+</body></html>
