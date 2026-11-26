@@ -1,3 +1,4 @@
+import { pbkdf2Sync, timingSafeEqual } from "node:crypto";
 import { getStore } from "@netlify/blobs";
 
 const headers = {
@@ -41,6 +42,17 @@ export default async function (request) {
       await store.setJSON(`visits/${day}/${id}`, { lastSeen: now });
       return json({ ok: true });
     }
+
+    // Password is never stored in the repository. Only the salted,
+    // deliberately expensive derived key is committed.
+    const provided = request.headers.get("X-Nightly-Statistics-Password") || "";
+    const expected = Buffer.from("64ac6782290ab97319826d457e49f3abade646bd310398f76e9137bd8737ba7b", "hex");
+    let authorized = false;
+    if (provided.length > 0 && provided.length < 150) {
+      const result = pbkdf2Sync(provided, Buffer.from("f69d2ab4fa5973ddc43bfce037eef0c1", "hex"), 210000, 32, "sha256");
+      authorized = timingSafeEqual(result, expected);
+    }
+    if (!authorized) return json({ error: "Vale parool või parool puudub." }, 401);
 
     const { blobs } = await store.list({ prefix: "visits/" });
     const dates = recentDays(7);
