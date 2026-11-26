@@ -373,12 +373,12 @@ def main():
     apify_success = False
     try:
         apify_events, apify_success = apify_facebook_events(today.isoformat())
-        known = {(re.sub(r"\\W+", "", e.get("title", "").casefold()),
-                  e.get("date", ""), re.sub(r"\\W+", "", e.get("venue", "").casefold()))
+        known = {(re.sub(r"\W+", "", e.get("title", "").casefold()),
+                  e.get("date", ""), re.sub(r"\W+", "", e.get("venue", "").casefold()))
                  for e in unique.values()}
         for event in apify_events:
-            identity = (re.sub(r"\\W+", "", event["title"].casefold()),
-                        event["date"], re.sub(r"\\W+", "", event["venue"].casefold()))
+            identity = (re.sub(r"\W+", "", event["title"].casefold()),
+                        event["date"], re.sub(r"\W+", "", event["venue"].casefold()))
             if identity in known:
                 continue
             known.add(identity)
