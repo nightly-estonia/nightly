@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-11-27T06:56:45.908425+00:00",
+  "updatedAt": "2026-11-27T14:10:50.330216+00:00",
   "source": "Viidad + SKENE.INFO + Apify Facebook public Tallinn event listings",
   "events": [
     {
@@ -958,6 +958,23 @@
       "unverified": true
     },
     {
+      "id": 3980399646,
+      "title": "Laine Karaoke: Xmas Office Karaoke ft. Luki Jakson",
+      "date": "2026-12-03",
+      "time": "",
+      "venue": "Uus Laine",
+      "address": "Vana-Kalamaja 1,Tallinn, Estonia",
+      "district": "Põhja-Tallinn",
+      "category": "Ööklubi",
+      "price": "price unknown",
+      "url": "https://allevents.in/tallinn/laine-karaoke-xmas-office-karaoke-ft-luki-jakson/200031148884727",
+      "seller": "AllEvents Tallinn",
+      "age": "Kontrolli korraldajalt",
+      "directTicket": false,
+      "soldOut": false,
+      "unverified": true
+    },
+    {
       "id": 1057360759,
       "title": "Ctrl + X ‘mas: Christmas office party",
       "date": "2026-12-03",
@@ -1573,6 +1590,23 @@
       "category": "Kontsert",
       "price": "€35",
       "url": "https://fienta.com/et/detsembrikuu-valge-tants-belyy-tanec-dekabrya",
+      "seller": "Fienta",
+      "age": "Kontrolli korraldajalt",
+      "directTicket": false,
+      "soldOut": false,
+      "unverified": true
+    },
+    {
+      "id": 1228315723,
+      "title": "Ensemble Auftakt · Stuudiokontsert",
+      "date": "2026-12-06",
+      "time": "17:00",
+      "venue": "Uudistemaja (ERR — Eesti Rahvusringhääling) I stuudio",
+      "address": "F. R. Kreutzwaldi tänav 14, 10124 Tallinn, Harju maakond",
+      "district": "Kesklinn",
+      "category": "Kontsert",
+      "price": "€5",
+      "url": "https://fienta.com/et/ensemble-auftakt-stuudiokontsert",
       "seller": "Fienta",
       "age": "Kontrolli korraldajalt",
       "directTicket": false,
