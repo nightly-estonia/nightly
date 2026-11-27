@@ -34,7 +34,7 @@ h1{font-size:clamp(28px,5vw,47px);letter-spacing:-.04em;margin:60px 0 6px}
 <main>
 <header class="top"><a href="/" class="logo">NIGHTLY<span>.</span></a><a href="/" class="link">← Tagasi ürituste juurde</a></header>
 <h1>NIGHTLY statistika</h1>
-<p class="sub">Tallinna ööelu veebilehe külastused. Andmed uuenevad automaatselt iga minuti järel.</p>
+<p class="sub">Tallinna ööelu veebilehe külastused. Aktiivsete külastajate arv ja muu statistika uuenevad automaatselt umbes iga 20 sekundi järel, kui see leht on avatud.</p>
 <section id="locked">
 <h2>🔒 Ainult omanikule</h2>
 <p>Statistika vaatamiseks sisesta oma NIGHTLY parool.</p>
@@ -61,7 +61,7 @@ Loendatakse veebilehe avamisi, mitte unikaalseid inimesi. Lehe uuesti avamine li
 <script>
 const format = (n) => new Intl.NumberFormat('et-EE').format(n);
 let password = '';
-let refreshTimer = null;
+let isRefreshing = false;
 document.getElementById('unlockForm').addEventListener('submit',async (event)=>{
   event.preventDefault();
   password = document.getElementById('statsPassword').value;
@@ -69,7 +69,8 @@ document.getElementById('unlockForm').addEventListener('submit',async (event)=>{
   await refresh();
 });
 async function refresh(){
-  if(!password)return;
+  if(!password || document.hidden || isRefreshing)return;
+  isRefreshing=true;
   try{
     const response=await fetch('/.netlify/functions/statistics',{
       cache:'no-store',
@@ -99,14 +100,17 @@ async function refresh(){
       col.append(n,bar,label);return col;
     }));
     document.getElementById('status').className='';
-    document.getElementById('status').textContent='Viimati uuendatud: '+new Date().toLocaleTimeString('et-EE',{timeZone:'Europe/Tallinn',hour:'2-digit',minute:'2-digit'});
+    document.getElementById('status').textContent='Viimati uuendatud: '+new Date().toLocaleTimeString('et-EE',{timeZone:'Europe/Tallinn',hour:'2-digit',minute:'2-digit',second:'2-digit'});
   }catch(e){
     const message = 'Statistikateenus pole praegu kättesaadav (' + (e.message || 'võrguviga') + '). Parool võib olla õige, kuid Netlify peab statistikafunktsiooni edukalt avaldama.';
     document.getElementById('loginError').textContent=message;
     document.getElementById('status').className='bad';
     document.getElementById('status').textContent=message;
+  }finally{
+    isRefreshing=false;
   }
 }
-setInterval(refresh,60000);
+setInterval(refresh,20000);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)refresh()});
 </script>
 </body></html>
