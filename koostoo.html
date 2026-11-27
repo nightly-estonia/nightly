@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="et">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#09090b">
+<meta name="description" content="Tee oma üritus nähtavaks NIGHTLY Tallinna ürituste keskkonnas. Küsi reklaamikoostööd.">
+<title>Koostöö ja reklaam — NIGHTLY</title>
+<style>
+:root{color-scheme:dark;--bg:#09090b;--panel:#171619;--gold:#e3c17b;--muted:#a9a39a;--border:#51412d;--white:#f4efe6}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{background:radial-gradient(ellipse at 70% 8%,#62462040,transparent 36%),var(--bg);color:var(--white);font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;margin:0}
+a{color:inherit}header{border-bottom:1px solid #332a21;padding:22px max(22px,calc((100vw - 1060px)/2));display:flex;align-items:center;justify-content:space-between;gap:12px}
+.brand{text-decoration:none;letter-spacing:.22em;font-size:23px;font-weight:900;color:var(--gold)}.brand span{color:white}.back{font-size:13px;text-decoration:none;color:#cbbfa8}
+main{width:min(1060px,calc(100% - 40px));margin:auto;padding:55px 0 90px}
+.eyebrow{letter-spacing:.23em;color:var(--gold);font-size:12px;font-weight:800;text-transform:uppercase}
+h1{font-size:clamp(35px,6vw,66px);letter-spacing:-.05em;line-height:1.04;max-width:780px;margin:17px 0}h1 em{font-style:normal;color:var(--gold)}
+.lead{max-width:700px;color:#beb5a7;line-height:1.7;font-size:16px;margin:0 0 36px}
+.packages{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+.plan{position:relative;background:var(--panel);border:1px solid #4b3b28;border-radius:20px;padding:24px;min-height:255px}
+.plan h2{font-size:21px;margin:0 0 9px}.plan .price{font-size:38px;letter-spacing:-.05em;font-weight:900;color:var(--gold)}.plan .period{color:#c3b39c;font-size:14px}.plan p{line-height:1.6;color:#b5aba1;font-size:14px}
+.tag{color:#e8c783;border:1px solid #7d613a;border-radius:20px;font-size:11px;padding:5px 10px;display:inline-block;margin-bottom:14px}
+.button{display:inline-block;color:#17120c;background:var(--gold);padding:12px 17px;border-radius:10px;font-weight:750;text-decoration:none;margin-top:8px}
+.section{margin:54px 0 16px;font-size:26px;letter-spacing:-.02em}
+.note{border-left:3px solid #94703b;padding:12px 16px;color:#c9bba8;background:#201b18;line-height:1.6;border-radius:0 9px 9px 0;font-size:14px}
+.formwrap{margin-top:22px;padding:30px;background:var(--panel);border:1px solid var(--border);border-radius:20px;max-width:720px}
+form{display:grid;grid-template-columns:1fr 1fr;gap:17px}
+.field{display:flex;flex-direction:column;gap:7px}.wide{grid-column:1/-1}
+label{color:#d8cab8;font-size:13px;font-weight:650}input,select,textarea{font:inherit;width:100%;padding:12px;color:#f5f0e9;background:#252326;border:1px solid #66533c;border-radius:10px;outline-offset:3px}input:focus,select:focus,textarea:focus{outline:2px solid var(--gold)}
+textarea{min-height:120px;resize:vertical}.submit{background:var(--gold);border:0;border-radius:10px;color:#19130c;padding:15px 20px;font-weight:850;font-size:15px;cursor:pointer}
+.fine{color:#a7a097;font-size:12px;line-height:1.65}footer{margin-top:55px;border-top:1px solid #3c332b;padding-top:22px;font-size:12px;color:#988d7e}
+@media(max-width:750px){.packages{grid-template-columns:1fr}.plan{min-height:0}form{grid-template-columns:1fr}.formwrap{padding:20px}header{padding:18px 22px}}
+</style>
+</head>
+<body>
+<header><a class="brand" href="/">NIGHTLY<span>.</span></a><a class="back" href="/">← Tagasi NIGHTLYsse</a></header>
+<main>
+<div class="eyebrow">Koostöö • Tallinn</div>
+<h1>Sinu üritus. <em>Rohkem nähtavust.</em></h1>
+<p class="lead">NIGHTLY koondab Tallinna kontserte, DJ-õhtuid ja üritusi ühte kohta. Korraldajad saavad küsida pakkumist ürituse esiletõstmiseks. Esiletõstetud sisu märgistatakse selgelt reklaamina.</p>
+<div class="packages">
+ <article class="plan"><div class="tag">Stardipakett</div><h2>Ürituse esiletõstmine</h2><div class="price">10 € <span class="period">/ kuu</span></div><p>Ühe vanusele sobiva ürituse reklaamesiletõstmine kokkulepitud ajaks.</p><a href="#tellimine" class="button" data-package="Esiletõstmine">Küsi pakkumist</a></article>
+ <article class="plan"><div class="tag">Populaarne</div><h2>Reklaamibänner</h2><div class="price">20 € <span class="period">/ kuu</span></div><p>Reklaambänner NIGHTLY lehel. Asukoht ja materjalid lepitakse eelnevalt kokku.</p><a href="#tellimine" class="button" data-package="Bänner">Küsi pakkumist</a></article>
+ <article class="plan"><div class="tag">Koostöö</div><h2>Üritus + Instagram</h2><div class="price">35 € <span class="period">/ kuu</span></div><p>Ürituse esiletõstmine koos sobiva NIGHTLY sotsiaalmeedia koostööga.</p><a href="#tellimine" class="button" data-package="Üritus ja Instagram">Küsi pakkumist</a></article>
+</div>
+<h2 class="section" id="tellimine">Saada koostöösoov</h2>
+<p class="note"><strong>Praegu on avatud ainult päringud.</strong> Ühegi nupu vajutamine ei võta raha ega käivita tellimust. Hinnad on esialgsed näidispakkumised; tingimused ja arveldamine kinnitatakse koos täiskasvanud vastutajaga enne koostööd. Alkoholile, hasartmängudele või muule alaealistele sobimatule reklaamile pakkumisi ei võeta.</p>
+<div class="formwrap">
+<form name="nightly-reklaam" method="POST" action="/koostoo-aitah.html" data-netlify="true" netlify-honeypot="robot-valja">
+<input type="hidden" name="form-name" value="nightly-reklaam">
+<p hidden><label>Jäta see väli tühjaks <input name="robot-valja"></label></p>
+<div class="field"><label for="ettevote">Ettevõte / korraldaja *</label><input id="ettevote" name="ettevote" maxlength="120" required autocomplete="organization"></div>
+<div class="field"><label for="kontakt">Kontaktisiku nimi *</label><input id="kontakt" name="kontakt" maxlength="100" required autocomplete="name"></div>
+<div class="field wide"><label for="email">Tööalane e-posti aadress *</label><input id="email" name="email" type="email" maxlength="180" required autocomplete="email"></div>
+<div class="field wide"><label for="pakett">Milline pakett huvitab? *</label><select id="pakett" name="pakett" required><option value="" selected disabled>Vali pakett</option><option>Esiletõstmine – 10 €/kuu</option><option>Bänner – 20 €/kuu</option><option>Üritus ja Instagram – 35 €/kuu</option><option>Soovin teistsugust pakkumist</option></select></div>
+<div class="field wide"><label for="kirjeldus">Üritus või koostööidee *</label><textarea id="kirjeldus" name="kirjeldus" maxlength="1500" required placeholder="Kirjelda lühidalt üritust, kuupäeva ja koostöösoovi."></textarea></div>
+<div class="field wide fine">Vormi andmeid kasutatakse ainult sinu koostööpäringu läbivaatamiseks ja sellele vastamiseks ning need salvestatakse Netlify vormiteenusesse. Ära saada isiku- või makseandmeid, mida päringuks vaja pole.</div>
+<button class="submit wide" type="submit">Saada koostöösoov</button>
+</form>
+</div>
+<footer>© NIGHTLY • YOUR CITY. YOUR NIGHT. • Reklaami pakkumised vajavad eelnevat kinnitamist.</footer>
+</main>
+<script>
+document.querySelectorAll('[data-package]').forEach(link=>link.addEventListener('click',()=>{
+ const name=link.dataset.package;
+ const select=document.getElementById('pakett');
+ for(const option of select.options){if(option.textContent.startsWith(name)){select.value=option.value;break}}
+}));
+</script>
+</body>
+</html>
